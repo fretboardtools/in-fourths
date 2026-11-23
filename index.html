@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>In Fourths: bass practice, one small shape at a time</title>
+<meta name="description" content="Daily bass practice built on the modes and the 2 Position System: a 26-week woodshed, small shapes you can find all over the neck, one-root ladders, and a drone to play against.">
+<meta name="theme-color" content="#3a2620">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preload" href="fonts/atkinson-hyperlegible-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/oswald-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="css/site.css">
+<meta property="og:title" content="In Fourths: bass practice, one small shape at a time">
+<meta property="og:description" content="Learn one small shape, then find it all over the neck. A 26-week bass woodshed with diagrams you can hear, and a drone to practise against.">
+<meta property="og:type" content="website">
+</head>
+<body>
+<a class="skip" href="#app">Skip to the page</a>
+<header class="top">
+  <div class="wrap top-inner">
+    <a class="brand" href="#/" aria-label="In Fourths, home">
+      <svg class="brand-mark" viewBox="0 0 28 22" aria-hidden="true"><line x1="0" y1="3" x2="28" y2="3" stroke-width="1.4"/><line x1="0" y1="8.5" x2="28" y2="8.5" stroke-width="2"/><line x1="0" y1="14" x2="28" y2="14" stroke-width="2.6"/><line x1="0" y1="19.5" x2="28" y2="19.5" stroke-width="3.3"/></svg>
+      <span>In Fourths</span>
+    </a>
+    <nav class="nav" aria-label="Main">
+      <a href="#/woodshed" data-nav="woodshed">Woodshed</a>
+      <a href="#/cells" data-nav="cells">Cells</a>
+      <a href="#/one-root" data-nav="oneroot">One Root</a>
+      <a href="#/songs" data-nav="songs">Songs</a>
+      <a href="#/about" data-nav="about">How it works</a>
+    </nav>
+  </div>
+</header>
+
+<main id="app" tabindex="-1">
+  <noscript><div class="wrap page"><h1>In Fourths</h1><p>The practice pages, diagrams and drone on this site run in your browser and need JavaScript switched on.</p></div></noscript>
+</main>
+
+<footer class="foot">
+  <div class="wrap foot-inner">
+    <p>Made by Graham Tippett, who writes the books at <a href="https://unlocktheguitar.net" target="_blank" rel="noopener">unlocktheguitar.net</a>.</p>
+    <p><a href="#/about">How it works</a></p>
+  </div>
+</footer>
+
+<div class="drone" id="droneBar" role="region" aria-label="Drone">
+  <div class="drone-inner">
+    <span class="drone-wave" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+    <label class="drone-l">Drone <select aria-label="Drone note"></select></label>
+    <button class="drone-toggle" type="button" aria-pressed="false">Start</button>
+    <label class="drone-vol">Volume <input type="range" min="0" max="1" step="0.05" aria-label="Drone volume"></label>
+  </div>
+</div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
