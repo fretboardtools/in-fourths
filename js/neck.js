@@ -1,6 +1,5 @@
 // Fretboard diagrams drawn as SVG. The neck is flat: E string at the bottom.
-import { STRINGS, midiAt } from './theory.js';
-import { pluck, now } from './audio.js';
+import { STRINGS } from './theory.js';
 
 const FS = 46;      // fret width
 const SS = 30;      // string spacing
@@ -78,9 +77,8 @@ export function diagramSVG(spec, opts = {}) {
     const [s, f, lab, st, tag] = nt;
     if (y[s] === undefined || f < start || f > end) continue;
     const x = xc(f), yy = y[s];
-    const midi = midiAt(s, f);
     const small = String(lab).length > 2;
-    out.push(`<g class="dot d-${st}" data-midi="${midi}" data-tag="${tag ? esc(tag) : ''}" tabindex="-1">`);
+    out.push(`<g class="dot d-${st}">`);
     if (st === 'colour') out.push(`<circle class="ring" cx="${x}" cy="${yy}" r="${R + 3.6}"/>`);
     out.push(`<circle class="c" cx="${x}" cy="${yy}" r="${R}"/>`);
     out.push(`<text class="lab${small ? ' lab-s' : ''}" x="${x}" y="${yy + (small ? 4 : 4.8)}">${esc(lab)}</text>`);
@@ -91,69 +89,11 @@ export function diagramSVG(spec, opts = {}) {
   return out.join('');
 }
 
-// A figure: the diagram plus a caption and a play button.
+// A figure: the diagram plus its caption.
 export function figureHTML(spec, opts = {}) {
   const cap = [spec.cap, spec.figcap].filter(Boolean).join(' / ');
-  const playable = (spec.notes || []).some(n => n[3] !== 'faint');
   return `<figure class="fig${opts.wide ? ' fig-wide' : ''}">
     <div class="neckwrap">${diagramSVG(spec, opts)}</div>
-    <figcaption>${playable ? '<button class="play" type="button" aria-label="Play this diagram"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9.5-5.5z"/></svg></button>' : ''}<span>${esc(cap)}</span></figcaption>
+    <figcaption>${esc(cap)}</figcaption>
   </figure>`;
-}
-
-// Order in which a diagram's notes are played: beats if tagged, else low to high and back.
-export function playOrder(svg) {
-  const dots = [...svg.querySelectorAll('.dot')].filter(d => !d.classList.contains('d-faint'));
-  const tagged = dots.filter(d => d.dataset.tag);
-  if (tagged.length) {
-    const seq = [];
-    for (const d of tagged) for (const b of d.dataset.tag.split(',')) seq.push([parseInt(b, 10), d]);
-    seq.sort((a, b) => a[0] - b[0]);
-    return seq.map(x => x[1]);
-  }
-  const uniq = [];
-  const seen = new Set();
-  dots.sort((a, b) => +a.dataset.midi - +b.dataset.midi).forEach(d => {
-    if (!seen.has(d.dataset.midi)) { seen.add(d.dataset.midi); uniq.push(d); }
-  });
-  return uniq.concat(uniq.slice(0, -1).reverse());
-}
-
-let playToken = 0;
-
-export function playSequence(dots, bpm = 92) {
-  const token = ++playToken;
-  const beat = 60 / bpm;
-  const t0 = now() + 0.06;
-  dots.forEach((d, i) => {
-    pluck(+d.dataset.midi, t0 + i * beat, beat * 1.1);
-    setTimeout(() => {
-      if (token !== playToken) return;
-      d.classList.add('on');
-      setTimeout(() => d.classList.remove('on'), beat * 900);
-    }, (i * beat + 0.06) * 1000);
-  });
-  return dots.length * beat;
-}
-
-export function stopPlayback() {
-  playToken++;
-}
-
-// One delegated listener for every diagram on the page.
-export function wireDiagrams(root) {
-  root.addEventListener('click', e => {
-    const dot = e.target.closest('.dot');
-    if (dot) {
-      pluck(+dot.dataset.midi);
-      dot.classList.add('on');
-      setTimeout(() => dot.classList.remove('on'), 350);
-      return;
-    }
-    const btn = e.target.closest('.play');
-    if (btn) {
-      const svg = btn.closest('figure').querySelector('svg.neck');
-      playSequence(playOrder(svg), +(document.documentElement.dataset.bpm || 92));
-    }
-  });
 }

@@ -97,7 +97,7 @@ export function blockView(key, k, labels) {
     title: `${m.title}: the block`,
     intro: `Three notes on one string and three on the next, from the root. That's the whole of ${m.name} on two strings. ` +
       (colourIn ? `The ringed note is the ${m.colour}, the note that makes it sound like ${m.name}. ` : '') +
-      `Below, every place the same six notes fit on the neck, up to the 15th fret. It's the same shape on every pair of strings, so there's nothing new to learn in any of them.`,
+      `Under the diagram you can open every other place the same six notes fit, up to the 15th fret. It's the same shape on every pair of strings, so there's nothing new to learn in any of them.`,
     big, strips,
     do: [`Drone on ${m.root}. Play the block up and back until it's automatic.`,
       'Then play it in every outlined place in the strips, moving from one to the next without stopping.',

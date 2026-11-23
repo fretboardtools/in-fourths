@@ -6,11 +6,11 @@ Bass practice built on the modes and the 2 Position System. A static site: plain
 
 | Page | What it does |
 |---|---|
-| Home (`#/`) | The idea, the three ways to practise, links to the books |
+| Home (`#/`) | The idea, one button into the Woodshed, and links to Cells and One Root |
 | The Woodshed (`#/woodshed`) | All 182 daily pages of *The Bass Woodshed*, with progress saved in the visitor's browser |
-| A day (`#/woodshed/27`) | Diagrams you can tap to hear, a play button per diagram, "Play the line" with a tempo slider on Day 6 pages, a drone button set to the page's root, mark-as-done, print |
+| A day (`#/woodshed/27`) | The page's diagrams, a drone button set to the page's root, mark-as-done, print |
 | Cells (`#/cells/C/0/block`) | Block, moves, triad, 7th, 9th and the map of the key, in all 12 keys, with interval or note-name labels |
-| One Root (`#/one-root/E/triads`) | The eight one-note ladders on any root |
+| One Root (`#/one-root/E/triads`) | The eight one-note ladders on any root, one step open at a time |
 | Songs (`#/songs`) | The songs-as-vehicles list |
 | How it works (`#/about`) | The two positions, the diagram key, the drone, progress, who made it |
 
@@ -43,8 +43,8 @@ index.html          shell: header, footer, drone bar
 css/site.css        all styling, including print styles for the day pages
 js/app.js           pages and routing
 js/theory.js        intervals, spelling, modes, 2 Position placement
-js/neck.js          the fretboard diagrams (SVG), tap-to-hear and playback
-js/audio.js         plucked bass tone and the drone (Web Audio, no samples)
+js/neck.js          the fretboard diagrams (SVG)
+js/audio.js         the drone (Web Audio, no samples)
 js/cells.js         the Cells views
 js/oneroot.js       the One Root ladders
 js/songs.js         the songs list

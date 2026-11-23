@@ -1,13 +1,12 @@
-import { ROOT_NAMES, CIRCLE, notePc, MODE_NAMES, majorScale, midiAt, leadingNote, pcAt } from './theory.js';
-import { diagramSVG, figureHTML, wireDiagrams, playOrder, playSequence, stopPlayback } from './neck.js';
-import { startDrone, stopDrone, setDroneVolume, droneState, onDroneChange, pluck } from './audio.js';
+import { ROOT_NAMES, CIRCLE, notePc, MODE_NAMES, majorScale, leadingNote, pcAt } from './theory.js';
+import { diagramSVG, figureHTML } from './neck.js';
+import { startDrone, stopDrone, setDroneVolume, droneState, onDroneChange } from './audio.js';
 import { CELL_VIEWS, blockView, chordView, movesView, mapView, modeOf, blockPlaces } from './cells.js';
 import { LADDERS, ladder } from './oneroot.js';
 import { FORMS, SONGS, SHORTLIST } from './songs.js';
 
 const app = document.getElementById('app');
 const UTG_BASS = 'https://unlocktheguitar.net/bass-scale-patterns-two-position-system.html';
-const UTG_BUNDLE = 'https://payhip.com/b/iuf50';
 
 // ---------------------------------------------------------------- storage (one viewer, one browser)
 
@@ -79,11 +78,6 @@ function diagramDot(st, lab) {
   <g class="dot d-${st}">${st === 'colour' ? '<circle class="ring" cx="20" cy="15" r="13"/>' : ''}<circle class="c" cx="20" cy="15" r="10"/><text class="lab${lab.length > 1 ? ' lab-s' : ''}" x="20" y="19">${lab}</text></g></svg>`;
 }
 
-function chips(items, current, href, cls = '') {
-  return `<div class="chips ${cls}" role="list">${items.map(([v, label]) =>
-    `<a role="listitem" class="chip${String(v) === String(current) ? ' is-on' : ''}" href="${href(v)}"${String(v) === String(current) ? ' aria-current="true"' : ''}>${label}</a>`).join('')}</div>`;
-}
-
 function boxes(p) {
   if (!p.do?.length && !p.rule) return '';
   return `<section class="drill">
@@ -102,26 +96,25 @@ function droneButton(pc, label) {
 // ---------------------------------------------------------------- views
 
 function heroSpec() {
-  // C Ionian block in every place it fits on all three string pairs
+  // the C Ionian block at the 8th fret, lit; every other place it fits drawn faint
   const m = modeOf('C', 0);
   const notes = [], bx = [];
-  const seen = new Map();
+  const seen = new Set();
+  const labs = ['1', '', '2', '', '3', '4', '', '5', '', '6'];
   [0, 1, 2].forEach(lower => {
     blockPlaces(m.pc, lower).forEach(f => {
-      bx.push({ lo: f, hi: f + 4, s0: lower, s1: lower + 1, style: 'solid' });
+      const main = lower === 0 && f === 8;
+      bx.push({ lo: f, hi: f + 4, s0: lower, s1: lower + 1, style: main ? 'solid' : 'dash' });
       m.semis.filter(s => s <= 9).forEach(s => {
         const st = s <= 4 ? lower : lower + 1;
         const fr = s <= 4 ? f + s : f + s - 5;
         const key = `${st},${fr}`;
-        if (!seen.has(key)) {
-          seen.set(key, true);
-          const lab = ['1', '', '2', '', '3', '4', '', '5', '', '6'][s];
-          notes.push([st, fr, lab, s === 0 ? 'root' : 'lit']);
-        }
+        if (main) { notes.push([st, fr, labs[s], s === 0 ? 'root' : 'lit']); seen.add(key); }
+        else if (!seen.has(key)) { notes.push([st, fr, labs[s], 'faint']); seen.add(key); }
       });
     });
   });
-  return { start: 0, n: 16, strings: [0, 1, 2, 3], notes, boxes: bx, cap: 'C Ionian block: every place it fits, open strings to the 15th fret' };
+  return { start: 0, n: 16, strings: [0, 1, 2, 3], notes, boxes: bx, cap: 'The C Ionian block at the 8th fret, and the other places the same shape fits' };
 }
 
 function viewHome() {
@@ -130,104 +123,40 @@ function viewHome() {
   app.innerHTML = `
   <section class="hero">
     <div class="hero-text wrap">
-      <h1>Learn one small shape.<br>Then find it all over the neck.</h1>
-      <p class="lede">Every string on a bass is a fourth apart, so a shape you learn on two strings works on every pair of strings, and again twelve frets up. Everything on this site is built on that.</p>
+      <h1>Learn one small shape. Then find it all over the neck.</h1>
+      <p class="lede">Every string on a bass is a fourth apart, so a shape you learn on two strings works on every pair, and again twelve frets up.</p>
     </div>
     <div class="hero-neck" id="heroNeck">${diagramSVG(heroSpec())}</div>
-    <div class="wrap hero-foot">
-      <p class="hero-cap">Six notes of C Ionian, three on one string and three on the next. Tap any note to hear it.</p>
-      <div class="actions">
-        <a class="btn btn-main" href="#/woodshed/${nd}">${started ? `Carry on with Day ${nd}` : 'Start Day 1 of the Woodshed'}</a>
-        <a class="btn" href="#/cells">Open Cells</a>
-      </div>
+    <div class="wrap start">
+      <a class="btn btn-main btn-big" href="#/woodshed/${nd}">${started ? `Carry on with Day ${nd}` : 'Start Day 1'}</a>
+      <p>${started ? `You've done ${done.size} of 182 days of the Woodshed.` : 'The Woodshed is one page a day for 26 weeks, twenty to thirty minutes with a drone. You never have to decide what to practise.'}</p>
     </div>
   </section>
 
-  <section class="wrap ways">
-    <h2>Three ways to practise</h2>
-    <div class="way">
-      <div class="way-fig">${diagramSVG(miniWoodshed())}</div>
-      <div class="way-text">
-        <h3><a href="#/woodshed">The Woodshed</a></h3>
-        <p>Twenty-six weeks, one page a day, twenty to thirty minutes with a drone. Each week takes one mode or one set of changes, and each weekday has the same job, so you never have to decide what to practise. Review days bring every page back at one, three and eight weeks.</p>
-        <p class="meta">182 pages · progress saved in this browser</p>
-      </div>
-    </div>
-    <div class="way">
-      <div class="way-fig">${diagramSVG(miniCells())}</div>
-      <div class="way-text">
-        <h3><a href="#/cells">Cells</a></h3>
-        <p>Small shapes from the modes: the six-note block, the triad, the 7th and the 9th, in any key. Each one is shown with every place it repeats on the neck, and the four moves that take you from one mode's block to the next.</p>
-        <p class="meta">7 modes · 12 keys · interval or note names</p>
-      </div>
-    </div>
-    <div class="way">
-      <div class="way-fig">${diagramSVG(miniRoot())}</div>
-      <div class="way-text">
-        <h3><a href="#/one-root">One Root</a></h3>
-        <p>Triads, sevenths, ninths, modes and scales on one root, arranged in ladders where each step changes a single note. E major to E minor to E diminished. Lydian down to Locrian. You only ever learn one new note at a time.</p>
-        <p class="meta">8 ladders · any root</p>
-      </div>
-    </div>
-  </section>
-
-  <section class="band">
-    <div class="wrap band-inner">
-      <div>
-        <h2>Practise against a drone</h2>
-        <p>A mode is a sound against a root, and on bass you're the one playing the root. The drone at the bottom of every page holds that root for you, so each interval has something to rub against. Pick the note, press start, and leave it on for the whole session.</p>
-      </div>
-      <div class="band-side">
-        <p class="band-q">Why does bass make sense to people who never got on with guitar?</p>
-        <p>The tuning is the same all the way across. On guitar the B string bends every shape that crosses it. On bass a shape means the same thing wherever you put it, so a system built from small shapes simply works, everywhere, with no exceptions.</p>
-      </div>
-    </div>
-  </section>
-
-  <section class="wrap more">
-    <div>
-      <h2><a href="#/songs">Songs worth learning</a></h2>
-      <p>Eleven songs chosen for what they teach, not for the setlist: the forms bands call, the keys you'd rather avoid, and a mode in each.</p>
-    </div>
-    <div>
-      <h2>The books</h2>
-      <p>The system behind this site is <a href="${UTG_BASS}" target="_blank" rel="noopener">The 2 Position Bass System</a>: scales, chord tones and chords in two positions from one root. It's also in the <a href="${UTG_BUNDLE}" target="_blank" rel="noopener">2 Position System bundle</a> with the guitar books.</p>
-    </div>
+  <section class="wrap also">
+    <p class="also-l">Or go straight to the shapes</p>
+    <a class="also-item" href="#/cells"><strong>Cells</strong><span>The small shapes inside each mode, and every place they repeat, in any key.</span></a>
+    <a class="also-item" href="#/one-root"><strong>One Root</strong><span>Chords, modes and scales on one root, one changed note at a time.</span></a>
   </section>`;
   animateHero();
-}
-
-function miniWoodshed() {
-  return { start: 4, n: 6, strings: [0, 1, 2, 3], root: 5, notes: [[0, 5, '1', 'root', '1'], [1, 7, '5', 'lit', '2'], [2, 5, '♭7', 'lit', '3'], [1, 9, '6', 'colour', '4'], [0, 7, '2', 'faint'], [0, 8, '♭3', 'faint'], [1, 5, '4', 'faint'], [2, 7, '8', 'faint']] };
-}
-function miniCells() {
-  return { start: 7, n: 6, strings: [0, 1, 2, 3], root: 8, notes: [[0, 8, '1', 'root'], [0, 10, '2', 'lit'], [0, 12, '3', 'lit'], [1, 8, '4', 'lit'], [1, 10, '5', 'lit'], [1, 12, '6', 'lit']], boxes: [{ lo: 8, hi: 12, s0: 0, s1: 1 }] };
-}
-function miniRoot() {
-  return { start: 11, n: 6, strings: [0, 1, 2, 3], root: 12, notes: [[0, 12, '1', 'root'], [0, 16, '3', 'lit'], [1, 14, '5', 'lit'], [0, 15, '♭3', 'colour']] };
 }
 
 function animateHero() {
   const svg = document.querySelector('#heroNeck svg');
   if (!svg) return;
-  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const boxesEls = [...svg.querySelectorAll('.box')];
-  const dots = [...svg.querySelectorAll('.dot')];
-  if (reduce) return;
-  // light the first block, then each repeat in turn along the neck
+  // on a narrow screen the neck scrolls: bring the lit block into view
+  const wrap = document.getElementById('heroNeck');
+  const main = svg.querySelector('.box-solid');
+  if (main && wrap.scrollWidth > wrap.clientWidth) {
+    const scale = svg.getBoundingClientRect().width / svg.viewBox.baseVal.width;
+    const x = (+main.getAttribute('x') + +main.getAttribute('width') / 2) * scale;
+    wrap.scrollLeft = x - wrap.clientWidth / 2;
+  }
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const repeats = [...svg.querySelectorAll('.box-dash')];
   svg.classList.add('hero-anim');
-  const order = boxesEls.map((b, i) => ({ b, x: +b.getAttribute('x'), i })).sort((a, b) => a.x - b.x || a.i - b.i);
-  const inBox = (d, b) => {
-    const c = d.querySelector('.c');
-    const cx = +c.getAttribute('cx'), cy = +c.getAttribute('cy');
-    const x = +b.getAttribute('x'), y = +b.getAttribute('y'), w = +b.getAttribute('width'), h = +b.getAttribute('height');
-    return cx > x && cx < x + w && cy > y && cy < y + h;
-  };
-  order.forEach(({ b }, k) => {
-    setTimeout(() => {
-      b.classList.add('show');
-      dots.filter(d => inBox(d, b)).forEach(d => d.classList.add('show'));
-    }, 500 + k * 340);
+  repeats.sort((a, b) => +a.getAttribute('x') - +b.getAttribute('x')).forEach((b, k) => {
+    setTimeout(() => b.classList.add('show'), 700 + k * 450);
   });
 }
 
@@ -236,39 +165,50 @@ function animateHero() {
 async function viewWoodshed() {
   const data = await shed();
   const nd = nextDay();
+  const cw = Math.ceil(nd / 7);
+  const wk = data.weeks[cw];
+  const thisWeek = [];
+  for (let d = (cw - 1) * 7 + 1; d <= cw * 7; d++) {
+    const p = data.days[d - 1];
+    thisWeek.push(`<li><a class="wday${done.has(d) ? ' is-done' : ''}${d === nd ? ' is-next' : ''}" href="#/woodshed/${d}"><span class="wday-n">${d}</span><span class="wday-t">${esc(p.title)}</span>${done.has(d) ? '<span class="tick" aria-label="done"></span>' : ''}</a></li>`);
+  }
   const parts = PARTS.map(([a, b, name, text]) => {
-    const weeks = [];
+    const rows = [];
+    let partDone = 0;
     for (let w = a; w <= b; w++) {
-      const wk = data.weeks[w];
-      const days = [];
-      for (let d = 1; d <= 7; d++) {
-        const day = (w - 1) * 7 + d;
-        const t = data.days[day - 1].title;
-        days.push(`<a class="daybox${done.has(day) ? ' is-done' : ''}${day === nd ? ' is-next' : ''}" href="#/woodshed/${day}" title="Day ${day}: ${esc(t)}"><span>${day}</span></a>`);
-      }
-      weeks.push(`<li class="week"><a class="week-name" href="#/woodshed/${(w - 1) * 7 + 1}"><span class="wn">Week ${w}</span> ${esc(wk.title)}</a><span class="week-key">Key of ${wk.key}</span><span class="week-days">${days.join('')}</span></li>`);
+      let n = 0;
+      for (let d = (w - 1) * 7 + 1; d <= w * 7; d++) if (done.has(d)) n++;
+      partDone += n;
+      rows.push(`<li><a href="#/woodshed/${(w - 1) * 7 + 1}"><span class="wn">Week ${w}</span><span class="wt">${esc(data.weeks[w].title)}</span><span class="wk">${n ? `${n} of 7` : ''}</span></a></li>`);
     }
-    return `<section class="part"><div class="part-head"><h2>${name}</h2><p>Weeks ${a}–${b}. ${text}</p></div><ol class="weeks" start="${a}">${weeks.join('')}</ol></section>`;
+    const open = cw >= a && cw <= b;
+    return `<details class="part"${open ? ' open' : ''}><summary><span class="part-name">${name}</span><span class="part-weeks">Weeks ${a}–${b}</span></summary><p>${text}</p><ol class="weeks">${rows.join('')}</ol></details>`;
   }).join('');
   app.innerHTML = `
-  <div class="wrap page">
+  <div class="wrap page narrow">
     <header class="page-head">
       <h1>The Woodshed</h1>
-      <p class="lede">Twenty-six weeks, one page a day. Each page is one idea, a few diagrams, three steps, one rule, and a line that tells you when you've got it. Twenty to thirty minutes with a drone.</p>
-      <div class="actions"><a class="btn btn-main" href="#/woodshed/${nd}">${done.size ? `Carry on with Day ${nd}` : 'Start Day 1'}</a><span class="progress">${done.size} of 182 days done</span></div>
+      <p class="lede">One page a day for 26 weeks. Each page is one idea, a few diagrams, three steps and one rule.</p>
     </header>
-    <section class="template">
-      <h2>The week</h2>
-      <p>From Week 3 to Week 20 every week covers one mode or one set of changes, and each weekday always has the same job. By the third week you know what tomorrow's page is before you open it.</p>
-      <ol class="weekdays">${WEEKDAYS.map(([n, t], i) => `<li><span class="wd">Day ${i + 1}</span><strong>${n}</strong><span>${t}</span></li>`).join('')}</ol>
-      <p class="note">If you haven't got a page, move on anyway. The review days bring every page back. Keys move one step round the circle of fifths each week, so by the end you've played in every key more than twice.</p>
+    <section class="thisweek">
+      <h2>Week ${cw}: ${esc(wk.title)}</h2>
+      <ol class="wdays">${thisWeek.join('')}</ol>
+      <a class="btn btn-main" href="#/woodshed/${nd}">${done.size ? `Carry on with Day ${nd}` : 'Start Day 1'}</a>
     </section>
-    ${parts}
-    <section class="readme">
-      <h2>Reading the diagrams</h2>
-      <p>The neck is drawn flat, the way you look down at it: E string at the bottom, G at the top, fret numbers underneath. The root's fret number is bold. Labels are intervals from the root, so the shapes work in any key.</p>
+    <section class="allweeks">
+      <h2>All 26 weeks</h2>
+      ${parts}
+    </section>
+    <details class="readme">
+      <summary>How a week works</summary>
+      <p>From Week 3 to Week 20 each week covers one mode or one set of changes, and each day of the week has the same job. Keys move one step round the circle of fifths each week. If you haven't got a page, move on anyway: the review days bring it back.</p>
+      <ol class="weekdays">${WEEKDAYS.map(([n, t], i) => `<li><strong>Day ${i + 1}: ${n}.</strong> ${t}</li>`).join('')}</ol>
+    </details>
+    <details class="readme">
+      <summary>Reading the diagrams</summary>
+      <p>E string at the bottom, G at the top, fret numbers underneath, the root's fret in bold. Labels are intervals from the root.</p>
       ${legendHTML()}
-    </section>
+    </details>
   </div>`;
 }
 
@@ -288,7 +228,6 @@ async function viewDay(day) {
     const cls = row.length === 1 && row[0].n > 8 ? 'row row-wide' : `row row-${row.length}`;
     return `<div class="${cls}">${row.map(spec => figureHTML(spec)).join('')}</div>`;
   }).join('');
-  const hasLine = p.rows.some(r => r.some(s => s.notes.some(n => n[4])));
   const rootPc = dayRoot(p, wk);
   app.innerHTML = `
   <article class="wrap page day">
@@ -303,7 +242,7 @@ async function viewDay(day) {
     </header>
     <div class="day-tools">
       <div class="strip" aria-label="Days this week">${strip.join('')}</div>
-      <div class="tools">${rootPc !== null ? droneButton(rootPc) : ''}${hasLine ? `<button class="btn" type="button" id="playLine">Play the line</button><label class="bpm">Tempo <input type="range" id="bpm" min="50" max="140" step="5" value="${store.get('bpm', 80)}"><output id="bpmOut">${store.get('bpm', 80)}</output></label>` : ''}</div>
+      <div class="tools">${rootPc !== null ? droneButton(rootPc) : ''}</div>
     </div>
     ${p.intro ? `<p class="intro">${p.intro}</p>` : ''}
     ${p.after ? `<div class="after">${p.after}</div>` : ''}
@@ -325,23 +264,6 @@ async function viewDay(day) {
     if (on && day < 182) { location.hash = `#/woodshed/${day + 1}`; return; }
     viewDay(day);
   });
-  const bpm = document.getElementById('bpm');
-  if (bpm) {
-    document.documentElement.dataset.bpm = bpm.value;
-    bpm.addEventListener('input', () => {
-      document.getElementById('bpmOut').textContent = bpm.value;
-      document.documentElement.dataset.bpm = bpm.value;
-      store.set('bpm', +bpm.value);
-    });
-    document.getElementById('playLine').addEventListener('click', () => {
-      stopPlayback();
-      const all = [];
-      app.querySelectorAll('.figs svg.neck').forEach(svg => {
-        if (svg.querySelector('.dot[data-tag]:not([data-tag=""])')) all.push(...playOrder(svg));
-      });
-      playSequence(all, +bpm.value);
-    });
-  }
 }
 
 function dayRoot(p, wk) {
@@ -356,9 +278,19 @@ function dayRoot(p, wk) {
 
 // ---------- cells
 
+function selectHTML(id, label, options, current) {
+  return `<label class="pick"><span>${label}</span><select id="${id}">${options.map(([v, t]) => `<option value="${esc(v)}"${String(v) === String(current) ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></label>`;
+}
+
+function tabsHTML(items, current, href) {
+  return `<nav class="tabs" aria-label="View">${items.map(([v, t]) => `<a href="${href(v)}" class="${v === current ? 'is-on' : ''}"${v === current ? ' aria-current="page"' : ''}>${t}</a>`).join('')}</nav>`;
+}
+
 function viewCells(key = 'C', k = 0, view = 'block') {
   if (!CIRCLE.includes(key)) key = 'C';
   k = Math.max(0, Math.min(6, +k || 0));
+  const views = [...CELL_VIEWS.map(([v, t]) => [v, t.replace(/^The /, '').replace(/^./, c => c.toUpperCase())]), ['map', 'Whole key']];
+  if (!views.some(([v]) => v === view)) view = 'block';
   const labels = store.get('labels', 'intervals');
   const names = majorScale(key);
   const href = (kk = key, mm = k, vv = view) => `#/cells/${encodeURIComponent(kk)}/${mm}/${vv}`;
@@ -367,87 +299,98 @@ function viewCells(key = 'C', k = 0, view = 'block') {
   if (view === 'map') {
     const v = mapView(key, labels);
     rootPc = notePc(key);
-    body = `<h2 class="v-title">${esc(v.title)}</h2><p class="intro">${v.intro}</p>
+    body = `<p class="intro">${v.intro}</p>
       <h3 class="fig-h">Along the neck</h3><div class="row row-wide">${figureHTML(v.along, { wide: true })}</div>
-      <h3 class="fig-h">The stack, up the strings</h3><p class="fig-p">${v.stackNames.join(', then ')}: each one a string up at the same fret and one mode brighter, until Lydian wraps round to Locrian. That step is the one exception: Lydian's ♯4 is a fret higher, so the Locrian block starts one fret up.</p><div class="row row-1">${figureHTML(v.stack)}</div>
-      <h3 class="fig-h">The whole grid</h3><div class="row row-wide">${figureHTML(v.grid, { wide: true })}</div>
+      <h3 class="fig-h">The stack, up the strings</h3><p class="fig-p">${v.stackNames.join(', then ')}: each a string up and one mode brighter. Lydian to Locrian is the one step that moves a fret, because Lydian's ♯4 is a fret higher.</p><div class="row row-1">${figureHTML(v.stack)}</div>
+      <details class="more-figs"><summary>The whole grid</summary><div class="row row-wide">${figureHTML(v.grid, { wide: true })}</div></details>
       ${boxes(v)}`;
   } else if (view === 'block') {
     const v = blockView(key, k, labels);
-    body = `<h2 class="v-title">${esc(v.title)}</h2><p class="intro">${v.intro}</p>
+    body = `<p class="intro">${v.intro}</p>
       <div class="row row-1 big">${figureHTML(v.big)}</div>
-      <h3 class="fig-h">Every place it fits</h3>
-      ${v.strips.map(s => `<div class="row row-wide">${figureHTML(s, { wide: true })}</div>`).join('')}
+      <details class="more-figs"><summary>Every place it fits on the neck</summary>${v.strips.map(st => `<div class="row row-wide">${figureHTML(st, { wide: true })}</div>`).join('')}</details>
       ${boxes(v)}`;
   } else if (view === 'moves') {
     const v = movesView(key, k, labels);
-    body = `<h2 class="v-title">${esc(v.title)}</h2><p class="intro">${v.intro}</p>
+    body = `<p class="intro">${v.intro}</p>
       <div class="moves">${v.diags.map(d => `<div class="move"><h3>${esc(d.title)}</h3><p>${d.text}</p>${figureHTML(d.spec)}</div>`).join('')}</div>
       ${boxes(v)}`;
   } else {
     const v = chordView(key, k, view, labels);
     body = `<h2 class="v-title">${esc(v.title)}</h2><p class="intro">${v.intro}</p>
-      <div class="row row-2">${v.shapes.map(s => figureHTML(s)).join('')}</div>
+      <div class="row row-2">${v.shapes.map(sh => figureHTML(sh)).join('')}</div>
       ${boxes(v)}`;
   }
+  const heading = view === 'map' ? `${key} major` : `${names[k]} ${MODE_NAMES[k]}`;
   app.innerHTML = `
   <div class="wrap page tool">
-    <header class="page-head">
+    <header class="tool-head">
       <h1>Cells</h1>
-      <p class="lede">Small shapes from the modes, everywhere on the neck. Learn one, find it in every place it repeats, then move from it in any direction.</p>
-    </header>
-    <div class="controls">
-      <div class="control"><span class="control-l">Key</span>${chips(CIRCLE.map(c => [c, c]), key, v => href(v, k, view), 'chips-keys')}</div>
-      <div class="control"><span class="control-l">Mode</span>${chips(names.map((n, i) => [i, `${n} ${MODE_NAMES[i]}`]), view === 'map' ? -1 : k, v => href(key, v, view === 'map' ? 'block' : view))}</div>
-      <div class="control"><span class="control-l">Show</span>${chips([...CELL_VIEWS, ['map', `Map of ${key} major`]], view, v => href(key, k, v), 'chips-tabs')}</div>
-      <div class="control control-right"><span class="control-l">Labels</span>
-        <div class="seg" role="group" aria-label="Labels"><button type="button" data-labels="intervals" class="${labels === 'intervals' ? 'is-on' : ''}" aria-pressed="${labels === 'intervals'}">Intervals</button><button type="button" data-labels="names" class="${labels === 'names' ? 'is-on' : ''}" aria-pressed="${labels === 'names'}">Note names</button></div>
+      <div class="picks">
+        ${selectHTML('pickKey', 'Key', CIRCLE.map(c => [c, `${c} major`]), key)}
+        ${view === 'map' ? '' : selectHTML('pickMode', 'Mode', names.map((n, i) => [i, `${n} ${MODE_NAMES[i]}`]), k)}
         ${droneButton(rootPc)}
       </div>
+    </header>
+    ${tabsHTML(views, view, v => href(key, k, v))}
+    <div class="tool-body">
+      <div class="v-head"><h2 class="v-big">${esc(heading)}</h2>
+        <label class="toggle"><input type="checkbox" id="names"${labels === 'names' ? ' checked' : ''}> Note names</label></div>
+      ${body}
     </div>
-    <div class="tool-body">${body}</div>
   </div>`;
-  app.querySelectorAll('[data-labels]').forEach(b => b.addEventListener('click', () => {
-    store.set('labels', b.dataset.labels);
+  document.getElementById('pickKey').addEventListener('change', e => { location.hash = href(e.target.value, k, view); });
+  const pm = document.getElementById('pickMode');
+  if (pm) pm.addEventListener('change', e => { location.hash = href(key, e.target.value, view); });
+  document.getElementById('names').addEventListener('change', e => {
+    store.set('labels', e.target.checked ? 'names' : 'intervals');
     viewCells(key, k, view);
-  }));
+  });
 }
 
 // ---------- one root
 
-function viewOneRoot(root = 'E', id = 'root') {
+function viewOneRoot(root = 'E', id = 'triads', step = 1) {
   if (!ROOT_NAMES.includes(root)) root = 'E';
-  if (!LADDERS.some(l => l.id === id)) id = 'root';
+  if (!LADDERS.some(l => l.id === id)) id = 'triads';
   const v = ladder(root, id);
-  const href = (r = root, i = id) => `#/one-root/${encodeURIComponent(r)}/${i}`;
+  const href = (r = root, i = id, st) => `#/one-root/${encodeURIComponent(r)}/${i}${st ? '/' + st : ''}`;
   const order = ['E', 'B', 'F♯', 'D♭', 'A♭', 'E♭', 'B♭', 'F', 'C', 'G', 'D', 'A'];
+  const li = LADDERS.findIndex(l => l.id === id);
+  const prev = LADDERS[li - 1], next = LADDERS[li + 1];
   let body;
   if (id === 'root') {
-    body = `<div class="row row-wide">${figureHTML(v.map, { wide: true })}</div>`;
+    body = `<p class="intro">${v.intro}</p><div class="row row-wide">${figureHTML(v.map, { wide: true })}</div>`;
   } else {
-    body = `<ol class="ladder">${v.rows.map(r => `<li class="rung">
-      <div class="rung-head"><span class="rung-n">${r.n}</span><h3>${esc(r.name)}</h3>${r.change ? `<span class="rung-change">${esc(r.change)}</span>` : ''}<span class="rung-spell">${esc(r.spelling)}</span></div>
-      <div class="row row-2">${r.shapes.map(s => figureHTML(s)).join('')}</div></li>`).join('')}</ol>`;
+    step = Math.max(1, Math.min(v.rows.length, +step || 1));
+    const sel = v.rows.find(r => r.n === step) || v.rows[0];
+    body = `<p class="intro">${v.intro}</p>
+      <ol class="rungs">${v.rows.map(r => `<li><a class="rung-link${r === sel ? ' is-on' : ''}" href="${href(root, id, r.n)}"${r === sel ? ' aria-current="step"' : ''}>
+        <span class="rung-n">${r.n}</span><span class="rung-name">${esc(r.name)}</span><span class="rung-change">${esc(r.change || 'the top')}</span><span class="rung-spell">${esc(r.spelling)}</span></a></li>`).join('')}</ol>
+      <div class="rung-open">
+        <h3>${esc(sel.name)}${sel.change ? `<span class="rung-change">${esc(sel.change)}</span>` : ''}</h3>
+        <div class="row row-2">${sel.shapes.map(sh => figureHTML(sh)).join('')}</div>
+      </div>`;
   }
   app.innerHTML = `
   <div class="wrap page tool">
-    <header class="page-head">
+    <header class="tool-head">
       <h1>One Root</h1>
-      <p class="lede">Everything on one root, in ladders where each step changes a single note. The root stays put, so you hear exactly what each note does to it.</p>
+      <div class="picks">
+        ${selectHTML('pickRoot', 'Root', order.map(c => [c, c]), root)}
+        ${selectHTML('pickLadder', 'Ladder', LADDERS.map(l => [l.id, l.name]), id)}
+        ${droneButton(notePc(root))}
+      </div>
     </header>
-    <div class="controls">
-      <div class="control"><span class="control-l">Root</span>${chips(order.map(c => [c, c]), root, r => href(r, id), 'chips-keys')}</div>
-      <div class="control"><span class="control-l">Ladder</span>${chips(LADDERS.map(l => [l.id, l.name]), id, i => href(root, i), 'chips-tabs')}</div>
-      <div class="control control-right">${droneButton(notePc(root))}</div>
-    </div>
     <div class="tool-body">
-      <h2 class="v-title">${esc(v.title)}</h2>
-      <p class="sub">${esc(v.sub)}</p>
-      <p class="intro">${v.intro}</p>
+      <div class="v-head"><h2 class="v-big">${esc(v.title)}</h2><p class="sub">${esc(v.sub)}</p></div>
       ${body}
       ${boxes(v)}
+      <nav class="pager ladder-pager">${prev ? `<a class="btn btn-quiet" href="${href(root, prev.id)}">${esc(prev.name)}</a>` : ''}${next ? `<a class="btn btn-quiet" href="${href(root, next.id)}">Next: ${esc(next.name)}</a>` : ''}</nav>
     </div>
   </div>`;
+  document.getElementById('pickRoot').addEventListener('change', e => { location.hash = href(e.target.value, id, step); });
+  document.getElementById('pickLadder').addEventListener('change', e => { location.hash = href(root, e.target.value); });
 }
 
 // ---------- songs
@@ -490,7 +433,7 @@ function viewAbout() {
     <p>Everything here sits in two five-fret windows built from one root on the E string. Position 1 reaches forward from the root, up the neck. Position 2 reaches back from it. Join them at the root and they cover nine frets. On a bass every string is a fourth apart, so the shapes never change from one string to the next, and inside a window every note has exactly one place.</p>
     <div class="row row-2">${figureHTML({ start: 7, n: 7, strings: [0, 1, 2, 3], root: 8, notes: [[0, 8, '1', 'root'], [2, 10, '8', 'root'], [0, 10, '2', 'sel'], [0, 12, '3', 'sel'], [1, 8, '4', 'sel'], [1, 10, '5', 'sel'], [1, 12, '6', 'sel'], [2, 9, '7', 'sel']], shade: [[0, 12], [1, 12]], cap: 'Position 1: forward from C, 8th fret' })}${figureHTML({ start: 3, n: 7, strings: [0, 1, 2, 3], root: 8, notes: [[0, 8, '1', 'root'], [3, 5, '8', 'root'], [1, 5, '2', 'sel'], [1, 7, '3', 'sel'], [1, 8, '4', 'sel'], [2, 5, '5', 'sel'], [2, 7, '6', 'sel'], [3, 4, '7', 'sel']], shade: [[3, 4]], cap: 'Position 2: back from the same C' })}</div>
     <h2>The diagrams</h2>
-    <p>The neck is drawn flat, the way you look down at it: E string at the bottom, G at the top, fret numbers underneath, the root's fret in bold. Labels are intervals from the root unless a page says otherwise. Tap any note to hear it, or press the play button under a diagram to hear the whole shape.</p>
+    <p>The neck is drawn flat, the way you look down at it: E string at the bottom, G at the top, fret numbers underneath, the root's fret in bold. Labels are intervals from the root unless a page says otherwise. On the line pages, the small numbers beside the notes are the beats.</p>
     ${legendHTML()}
     <h2>The drone</h2>
     <p>The bar at the bottom of the screen holds a low root note for as long as you want it. Each practice page has a button that sets it to that page's root. Bass speakers and headphones will give you the low end; laptop speakers will give you mostly the overtones, which is still enough to hear the intervals against.</p>
@@ -559,8 +502,8 @@ function setNav(name) {
 
 const TITLES = { home: 'In Fourths: bass practice, one small shape at a time', woodshed: 'The Woodshed', cells: 'Cells', oneroot: 'One Root', songs: 'Songs worth learning', about: 'How it works' };
 
+let prevA = null;
 async function route() {
-  stopPlayback();
   const parts = location.hash.replace(/^#\/?/, '').split('/').map(decodeURIComponent);
   const [a, b, c, d] = parts;
   let nav = 'home';
@@ -568,7 +511,7 @@ async function route() {
     if (a === 'woodshed' && b) { nav = 'woodshed'; await viewDay(parseInt(b, 10) || 1); }
     else if (a === 'woodshed') { nav = 'woodshed'; await viewWoodshed(); }
     else if (a === 'cells') { nav = 'cells'; viewCells(b || 'C', c || 0, d || 'block'); }
-    else if (a === 'one-root') { nav = 'oneroot'; viewOneRoot(b || 'E', c || 'root'); }
+    else if (a === 'one-root') { nav = 'oneroot'; viewOneRoot(b || 'E', c || 'triads', d || 1); }
     else if (a === 'songs') { nav = 'songs'; viewSongs(); }
     else if (a === 'about') { nav = 'about'; viewAbout(); }
     else viewHome();
@@ -578,11 +521,11 @@ async function route() {
   }
   setNav(nav);
   document.title = nav === 'home' ? TITLES.home : `${TITLES[nav]} · In Fourths`;
-  window.scrollTo(0, 0);
+  if (!(a === 'one-root' && d) && !(a === 'cells' && c !== undefined && prevA === 'cells')) window.scrollTo(0, 0);
+  prevA = a;
   app.focus({ preventScroll: true });
 }
 
-wireDiagrams(app);
 droneBar();
 window.addEventListener('hashchange', route);
 route();

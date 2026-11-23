@@ -1,8 +1,7 @@
-// Sound: a plucked bass tone (Karplus-Strong) and a sustained drone.
+// Sound: a sustained drone on the root.
 
 let ctx = null;
 let master = null;
-const cache = new Map();
 let drone = null;
 let droneVol = 0.5;
 const listeners = new Set();
@@ -24,59 +23,6 @@ function ac() {
 
 export function hz(midi) {
   return 440 * Math.pow(2, (midi - 69) / 12);
-}
-
-function pluckBuffer(midi) {
-  if (cache.has(midi)) return cache.get(midi);
-  const c = ac();
-  const sr = c.sampleRate;
-  const f = hz(midi);
-  const N = Math.max(2, Math.round(sr / f));
-  const len = Math.floor(sr * 2.2);
-  const buf = c.createBuffer(1, len, sr);
-  const y = buf.getChannelData(0);
-  // a soft, thumb-like excitation: smoothed noise
-  let prev = 0;
-  for (let i = 0; i < N; i++) {
-    const n = Math.random() * 2 - 1;
-    prev = prev * 0.55 + n * 0.45;
-    y[i] = prev;
-  }
-  const decay = midi < 40 ? 0.9975 : 0.9965;
-  for (let i = N; i < len; i++) {
-    y[i] = decay * 0.5 * (y[i - N] + y[i - N - 1 >= 0 ? i - N - 1 : i - N]);
-  }
-  let peak = 0;
-  for (let i = 0; i < len; i++) peak = Math.max(peak, Math.abs(y[i]));
-  if (peak > 0) for (let i = 0; i < len; i++) y[i] /= peak;
-  cache.set(midi, buf);
-  return buf;
-}
-
-export function pluck(midi, when = 0, dur = 1.6, gain = 0.85) {
-  const c = ac();
-  const t = when || c.currentTime;
-  const src = c.createBufferSource();
-  src.buffer = pluckBuffer(midi);
-  const lp = c.createBiquadFilter();
-  lp.type = 'lowpass';
-  lp.frequency.value = 1800;
-  // a little body so low notes still read on small speakers
-  const body = c.createBiquadFilter();
-  body.type = 'peaking';
-  body.frequency.value = 220;
-  body.gain.value = 5;
-  const g = c.createGain();
-  g.gain.setValueAtTime(gain, t);
-  g.gain.setTargetAtTime(0, t + dur * 0.8, 0.08);
-  src.connect(lp).connect(body).connect(g).connect(master);
-  src.start(t);
-  src.stop(t + dur + 0.5);
-  return t;
-}
-
-export function now() {
-  return ac().currentTime;
 }
 
 // ---------------------------------------------------------------- drone
